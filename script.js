@@ -175,44 +175,35 @@ function updateActiveLink() {
   });
 }
 
+/* =========================================
+   EFFET VISUEL AU CLICK – RIPPLE NEON
+========================================= */
 
+document.querySelectorAll('header nav a').forEach(link => {
+  link.addEventListener('click', function(e) {
 
-/* ============================================
-   EFFET RIPPLE NEON — VERSION ULTRA FIABLE
-   ============================================ */
+    // Supprime les anciens ripples
+    const oldRipple = this.querySelector('.ripple');
+    if (oldRipple) oldRipple.remove();
 
-document.addEventListener("DOMContentLoaded", () => {
-    const buttons = document.querySelectorAll(".category-btn");
+    // Coordonnées du clic
+    const rect = this.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
 
-    buttons.forEach(btn => {
-        btn.addEventListener("click", function (e) {
+    // Crée un nouveau ripple
+    const ripple = document.createElement('span');
+    ripple.classList.add('ripple');
+    ripple.style.width = ripple.style.height = `${size}px`;
+    ripple.style.left = `${x}px`;
+    ripple.style.top = `${y}px`;
 
-            // Supprimer les anciens ripple
-            const oldRipple = this.querySelector(".ripple");
-            if (oldRipple) oldRipple.remove();
+    // Ajoute le ripple dans le lien
+    this.appendChild(ripple);
 
-            const rect = this.getBoundingClientRect();
-            const size = Math.max(rect.width, rect.height);
-            const x = e.clientX - rect.left - size / 2;
-            const y = e.clientY - rect.top - size / 2;
-
-            const ripple = document.createElement("span");
-            ripple.classList.add("ripple");
-            ripple.style.width = `${size}px`;
-            ripple.style.height = `${size}px`;
-            ripple.style.left = `${x}px`;
-            ripple.style.top = `${y}px`;
-
-            this.appendChild(ripple);
-
-            // Animation auto-clean
-            ripple.addEventListener("animationend", () => {
-                ripple.remove();
-            });
-        });
-    });
+  });
 });
-
 
 /* =========================================
    HEADER – SHRINK ON SCROLL
@@ -228,210 +219,298 @@ function handleHeaderShrink() {
   }
 }
 
-/* script.js — RayhAI (amélioré)
-   - NLU plus robuste (multiple keywords, synonyms)
-   - short conversation memory (last 6 messages)
-   - modern UI hooks (ripple, typing)
-   - header shows "Bac Pro CIEL - Terminale" and "Assistant — Infos publiques"
-   - compatible with HTML IDs:
-     ai-bubble, ai-panel, ai-header-avatar (img), ai-header-text (.name .role), ai-messages, ai-input, ai-send
+/* script.js — RayhAI personnalisé pour Rayhan
+   - Intégration locale, pas d'API
+   - Typing effect, protection des données sensibles
+   - Basé sur le profil fourni par l'utilisateur
+   - S'attend aux éléments HTML : ai-bubble, ai-panel, ai-messages, ai-input, ai-send, ai-header-avatar, ai-header-text
 */
 
-/* =========================
-   Profil utilisateur (données)
-   ========================= */
-const R = {
+/* ==========================
+   PROFIL (modifiable)
+   ========================== */
+const RAYHAN = {
   displayName: "Rayhan",
   age: "18 ans",
   city: "Toulon",
-  studies: "Bac Pro CIEL - Terminale",
-  roleLabel: "Assistant — Infos publiques",
-  interests: ["Informatique","Cybersécurité","Réseau","Musculation"],
+  studies: "Bac Pro CIEL — Terminale",
+  interests: ["Informatique", "Cybersécurité", "Réseau", "Musculation"],
   favouriteGames: ["Valorant"],
   gamingLevel: "Très bon de manière générale",
-  defaultDescription: "Rayhan, 18 ans, étudiant en Terminale CIEL — passionné par l'informatique, la cybersécurité et les réseaux. Crée des projets web, bots et outils d'automatisation. Rigoureux et ambitieux.",
-  availability: "Généralement disponible en soirée (18:00–23:30).",
-  projects: ["Portfolio perso", "Bots & automatisations", "Scripts réseaux"],
-  qualities: ["Rigoureux","Curieux","Logique"],
-  flaws: ["Perfectionnisme","Ego peek en jeu"],
+  defaultDescription:
+    "Rayhan, 18 ans, étudiant en Terminale CIEL. Passionné par l'informatique, la cybersécurité et les réseaux. Crée des projets web et des outils IA. Ambitieux, rigoureux et compétent en technique.",
+  availability: "Généralement disponible en soirée, entre 18h00 et 23h30.",
+  projects: [
+    "Portfolio personnel (site web)",
+    "Bots et automatisations",
+    "Scripts et outils réseaux",
+  ],
+  qualities: ["Rigoureux", "Curieux", "Logique"],
+  flaws: ["Perfectionnisme", "Ego peek en jeu"],
+  // règles : éléments à ne jamais divulguer / réponses standardisées
   privacy: {
-    forbid: ["adresse","numéro","téléphone","phone","mail privé","email privé","iban","mdp"]
+    forbid: ["adresse", "numéro", "téléphone", "phone", "mail privé", "email privé"],
+    refusalMessage: "Désolé, je ne peux pas divulguer cette information."
   }
 };
 
-/* =========================
-   Small conversation memory
-   ========================= */
-const memory = []; // store { who: 'user'|'ai', text, ts }
-function pushMemory(who, text){
-  const entry = { who, text, ts: Date.now() };
-  memory.push(entry);
-  if(memory.length > 12) memory.shift(); // keep last 12
+/* ==========================
+   UTILITAIRES
+   ========================== */
+function normalizeText(s) {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove accents
+    .replace(/[^\w\s-]/g, " ")
+    .trim();
 }
 
-/* =========================
-   Helpers & NLU
-   ========================= */
-function norm(s){ return (s||"").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w\s]/g,' ').trim(); }
-function containsAny(source, arr){
-  const s = norm(source);
-  return arr.some(a => s.includes(a));
-}
-function containsSensitive(q){
-  return R.privacy.forbid.some(f => norm(q).includes(f));
+/* retourne true si question contient un mot interdit */
+function containsSensitive(text) {
+  const t = normalizeText(text);
+  return RAYHAN.privacy.forbid.some(f => t.includes(f));
 }
 
-/* improved intent detection: score keywords, synonyms */
-const INTENTS = [
-  { id:"greeting", keys:["salut","bonjour","hey","yo","wesh","hello"], reply: (q)=> `Salut — ${R.displayName} ici. ${R.defaultDescription.split('.')[0]}.` },
-  { id:"howareyou", keys:["ca va","ça va","comment vas","tu vas","tu vas bien"], reply: ()=> "Ça va bien, merci ! Et toi ?" },
-  { id:"who", keys:["qui est","qui es","tu es qui","presentation","presente","c est qui"], reply: ()=> R.defaultDescription },
-  { id:"age", keys:["age","âge","ans"], reply: ()=> `Il a ${R.age}.` },
-  { id:"city", keys:["ville","habite","ou habite","toulon","ou habites"], reply: ()=> `Il habite à ${R.city}.` },
-  { id:"studies", keys:["bac","terminale","ciel","etude","formation","lycee"], reply: ()=> R.studies },
-  { id:"interests", keys:["passion","aime","centre d","interet","hobby","loisir","musculation"], reply: ()=> `Centres d'intérêt : ${R.interests.join(', ')}.` },
-  { id:"skills", keys:["competence","competences","skill","html","css","js","python","reseau","reseaux","cyber"], reply: ()=> `Compétences principales : ${R.interests.slice(0,3).join(', ')}. Technique web & IA.` },
-  { id:"projects", keys:["projet","portfolio","site","bot","automation","automatisation"], reply: ()=> `Projets : ${R.projects.join(' • ')}.` },
-  { id:"games", keys:["valorant","jeu","jeux","rank","elo","niveau","aim"], reply: ()=> `Jeux favoris : ${R.favouriteGames.join(', ')} — niveau : ${R.gamingLevel}.` },
-  { id:"availability", keys:["disponible","disponibilite","horaire","heure"], reply: ()=> R.availability },
-  { id:"qualities", keys:["qualite","defaut","caractere","personnalite","personnalite"], reply: ()=> `Qualités : ${R.qualities.join(', ')}. Défauts : ${R.flaws.join(', ')}.` },
-  { id:"contact", keys:["contact","discord","email","mail","telephone"], reply: ()=> "Pour contact public, consulte la page contact du portfolio. Je ne fournis pas d'informations privées." }
-];
+/* typing effect : écrit le texte lettre par lettre dans node */
+function typeWrite(node, text, ms = 18) {
+  return new Promise(resolve => {
+    node.textContent = "";
+    let i = 0;
+    const timer = setInterval(() => {
+      node.textContent += text.charAt(i);
+      i++;
+      node.parentElement.scrollTop = node.parentElement.scrollHeight;
+      if (i >= text.length) {
+        clearInterval(timer);
+        resolve();
+      }
+    }, ms);
+  });
+}
 
-function detectIntent(q){
-  const s = norm(q);
-  if(!s) return { id:'empty', score:0 };
+/* Ajoute un message utilisateur dans la timeline */
+function appendUserMessage(text) {
+  const messages = document.getElementById("ai-messages");
+  const d = document.createElement("div");
+  d.className = "message user";
+  d.textContent = text;
+  messages.appendChild(d);
+  messages.scrollTop = messages.scrollHeight;
+}
 
-  // quick exact matches (short messages)
-  if(["salut","bonjour","hey","yo"].includes(s)) return { id:'greeting', score:1 };
+/* Ajoute un message IA avec typing */
+async function appendAIMessage(text) {
+  const messages = document.getElementById("ai-messages");
+  const d = document.createElement("div");
+  d.className = "message ai";
+  messages.appendChild(d);
+  messages.scrollTop = messages.scrollHeight;
+  await typeWrite(d, text, 18);
+}
 
-  // scoring
-  let best = { id:'fallback', score:0, matchCount:0 };
-  for(const it of INTENTS){
-    let count = 0;
-    for(const k of it.keys){
-      if(s.includes(k)) count++;
+/* Ajoute rapidement un message IA (sans typing) */
+function appendAIQuick(text) {
+  const messages = document.getElementById("ai-messages");
+  const d = document.createElement("div");
+  d.className = "message ai";
+  d.textContent = text;
+  messages.appendChild(d);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+/* ==========================
+   NLU : détection d'intention simple mais robuste
+   retourne { intent, score, entities }
+   ========================== */
+function detectIntent(query) {
+  const q = normalizeText(query);
+
+  // intents définis (mots-clés / patterns)
+  const patterns = [
+    { id: "greeting", keywords: ["salut", "bonjour", "yo", "hey", "wesh"] },
+    { id: "howareyou", keywords: ["ca va", "ça va", "comment vas", "tu vas"] },
+    { id: "who", keywords: ["qui est", "qui es tu", "tu es qui", "présente"] },
+    { id: "about_default", keywords: ["parle", "parles", "parle de toi", "présente toi", "c'est qui"] },
+    { id: "age", keywords: ["age", "âge", "ans"] },
+    { id: "city", keywords: ["ville", "ou habite", "habite"] },
+    { id: "studies", keywords: ["étude", "etude", "lycée", "bac", "ciel", "formation"] },
+    { id: "interests", keywords: ["passion", "aime", "hobby", "centre d interet", "centre d'interet", "intérêt"] },
+    { id: "skills", keywords: ["compétence", "competence", "sait faire", "skill", "skills"] },
+    { id: "projects", keywords: ["projet", "projects", "portfolio", "site"] },
+    { id: "games", keywords: ["valorant", "jeu", "jeux", "rank", "niveau"] },
+    { id: "availability", keywords: ["disponible", "disponibilite", "horaire", "heures"] },
+    { id: "qualities", keywords: ["qualité", "qualite", "défaut", "defaut", "caractère"] },
+    { id: "goal", keywords: ["objectif", "avenir", "futur", "projet pro"] },
+    { id: "contact", keywords: ["contact", "discord", "mail", "email", "telephone", "téléphone"] }
+  ];
+
+  // score simple : proportion de keywords présents
+  let best = { intent: "unknown", score: 0, entities: [] };
+
+  for (const p of patterns) {
+    let s = 0;
+    const found = [];
+    for (const k of p.keywords) {
+      if (q.includes(k)) {
+        s += 1;
+        found.push(k);
+      }
     }
-    if(count>0){
-      const score = count / it.keys.length;
-      if(score > best.score){
-        best = { id: it.id, score, matchCount: count };
+    if (s > 0) {
+      const score = s / p.keywords.length;
+      if (score > best.score) {
+        best = { intent: p.id, score, entities: found };
       }
     }
   }
+
+  // special-case : very short messages like 'salut', 'ça va', 'tu vois'
+  if (q.length <= 6) {
+    if (["salut", "hey", "yo"].includes(q)) best = { intent: "greeting", score: 1, entities: [] };
+    if (["cava", "ça va", "ca va"].includes(q)) best = { intent: "howareyou", score: 1, entities: [] };
+    if (q.includes("tu vois") || q.includes("me vois")) best = { intent: "visual", score: 1, entities: [] };
+  }
+
   return best;
 }
 
-/* =========================
-   Answer generator
-   ========================= */
-function generateAnswer(question){
-  if(!question || question.trim()==='') return "Pose-moi une question.";
-  if(containsSensitive(question)) return "Désolé, je ne peux pas divulguer cette information.";
+/* ==========================
+   GENERATEUR DE RÉPONSES
+   Utilise la base RAYHAN et l'intent détecté
+   ========================== */
+function generateAnswer(rawQuestion) {
+  const q = String(rawQuestion || "").trim();
+  if (!q) return "Pose-moi une question.";
 
-  const intent = detectIntent(question);
-
-  // direct intents
-  const found = INTENTS.find(i => i.id === intent.id);
-  if(found && typeof found.reply === 'function'){
-    return found.reply(question);
+  // protection données sensibles
+  if (containsSensitive(q)) {
+    return RAYHAN.privacy.refusalMessage;
   }
 
-  // fallback: try keyword heuristics
-  const s = norm(question);
-  if(s.includes('rayhan')) return R.defaultDescription;
-  if(/que fais|tu fais|travaille/.test(s)) return "Rayhan réalise des projets web, automatise des tâches, travaille la cybersécurité et développe des outils IA/monitoring.";
-  if(/parle de toi|presentes toi|parle/.test(s)) return R.defaultDescription;
-  // context-aware small attempt: if recent memory has user asked about X, try to expand
-  const lastUser = [...memory].reverse().find(m => m.who==='user' && m.text);
-  if(lastUser && /précise|développe|explique/.test(s)) return "Voici plus de détails : " + R.defaultDescription + " Pour plus précis, demande une section (compétences / projets / disponibilité).";
+  const detected = detectIntent(q);
+  const intent = detected.intent;
 
-  return "Je n'ai pas assez d'informations pour répondre exactement. Peux-tu préciser ta question ?";
+  // réponses par intent
+  switch (intent) {
+    case "greeting":
+      return "Salut ! " + RAYHAN.defaultDescription.split(".")[0] + ". Tu veux savoir quoi précisément ?";
+    case "howareyou":
+      return "Ça va — opérationnel. Et toi ?";
+    case "who":
+    case "about_default":
+      return RAYHAN.defaultDescription;
+    case "age":
+      return `Il a ${RAYHAN.age}.`;
+    case "city":
+      return `Il vit à ${RAYHAN.city}.`;
+    case "studies":
+      return `${RAYHAN.studies}.`;
+    case "interests":
+      return `Centres d'intérêt : ${RAYHAN.interests.join(", ")}.`;
+    case "skills":
+      // réponse plus détaillée
+      return `Compétences techniques : ${RAYHAN.interests
+        .filter(i => ["Informatique", "Cybersécurité", "Réseau"].includes(i))
+        .join(", ")}. Autres compétences : web, IA, maintenance.`;
+    case "projects":
+      return `Projets notables : ${RAYHAN.projects.join(" • ")}.`;
+    case "games":
+      return `Jeux favoris : ${RAYHAN.favouriteGames.join(", ")} — niveau : ${RAYHAN.gamingLevel}.`;
+    case "availability":
+      return `${RAYHAN.availability}`;
+    case "qualities":
+      return `Qualités : ${RAYHAN.qualities.join(", ")}. Défauts : ${RAYHAN.flaws.join(", ")}.`;
+    case "goal":
+      return `Objectifs : ${RAYHAN.projects.length ? RAYHAN.projects[0] + " et évoluer dans l'IA / cybersécurité." : "Travailler en informatique / cybersécurité."}`;
+    case "contact":
+      return `Pour le contact public, consulte le portfolio / page contact. Je ne fournis pas d'informations privées ici.`;
+    default:
+      // fallback intelligent : tenter extraction de mot-clé
+      const nq = normalizeText(q);
+      // si mention du prénom : répondre par description
+      if (nq.includes("rayhan")) return RAYHAN.defaultDescription;
+      // si demande ouverte "que fais-tu" ou "quoi" etc.
+      if (nq.match(/\b(que fais|tu fais|travaille|faites)\b/)) {
+        return "Rayhan réalise des projets web, automatise des tâches, travaille la cybersécurité et développe des outils IA/monitoring.";
+      }
+      // sinon réponse générique invitant à préciser
+      return "Je n'ai pas assez d'informations pour répondre exactement à cela. Peux-tu préciser ta question ?";
+  }
 }
 
-/* =========================
-   UI bindings & typing effect
-   ========================= */
-document.addEventListener('DOMContentLoaded', () => {
-  const bubble = document.getElementById('ai-bubble');
-  const panel = document.getElementById('ai-panel');
-  const headerName = document.querySelector('#ai-header-text .name');
-  const headerRole = document.querySelector('#ai-header-text .role');
-  const headerAvatarImg = document.querySelector('#ai-header-avatar img');
-  const messagesEl = document.getElementById('ai-messages');
-  const inputEl = document.getElementById('ai-input');
-  const sendBtn = document.getElementById('ai-send');
+/* ==========================
+   UI : connexion avec DOM
+   ========================== */
+document.addEventListener("DOMContentLoaded", () => {
+  const bubble = document.getElementById("ai-bubble");
+  const panel = document.getElementById("ai-panel");
+  const messages = document.getElementById("ai-messages");
+  const input = document.getElementById("ai-input");
+  const sendBtn = document.getElementById("ai-send");
+  const headerTextName = document.querySelector("#ai-header-text .name");
+  const headerTextRole = document.querySelector("#ai-header-text .role");
+  const headerAvatar = document.querySelector("#ai-header-avatar img");
 
-  // Fill header values reliably
-  if(headerName) headerName.textContent = `${R.displayName} • ${R.age}`;
-  if(headerRole) headerRole.textContent = R.roleLabel || "Assistant — Infos publiques";
-  if(headerAvatarImg){
-    headerAvatarImg.src = headerAvatarImg.src || "rayhai.jpg";
-    headerAvatarImg.alt = R.displayName;
-  }
+  // fill header fields from profile
+  if (headerTextName) headerTextName.textContent = RAYHAN.displayName + (RAYHAN.age ? ` • ${RAYHAN.age}` : "");
+  if (headerTextRole) headerTextRole.textContent = RAYHAN.studies;
+  if (headerAvatar) headerAvatar.src = headerAvatar.src || "rayhai.jpg";
 
-  // open/close panel with ripple
-  bubble.addEventListener('click', (e) => {
-    // create ripple centered on bubble
-    const rect = bubble.getBoundingClientRect();
-    const ripple = document.createElement('div');
-    ripple.className = 'bubble-ripple';
-    ripple.style.left = (e.clientX - rect.left) + 'px';
-    ripple.style.top = (e.clientY - rect.top) + 'px';
-    ripple.style.width = ripple.style.height = Math.max(rect.width, rect.height) + 'px';
-    bubble.appendChild(ripple);
-    setTimeout(()=> ripple.remove(), 700);
+  // open/close panel
+  bubble.addEventListener("click", () => {
+    // animation onde
+    const wave = document.createElement("div");
+    wave.className = "shockwave";
+    bubble.appendChild(wave);
+    setTimeout(() => wave.remove(), 620);
 
-    panel.classList.toggle('open');
-    if(panel.classList.contains('open')){
-      inputEl.focus();
-      // show welcome only once
-      if(messagesEl.children.length === 0){
-        pushMemory('ai', 'welcome');
-        typeAndAppend("Bonjour — je suis RayhAI. Pose une question sur Rayhan (études, compétences, projets, jeux).");
+    panel.classList.toggle("open");
+    if (panel.classList.contains("open")) {
+      input.focus();
+      // première ouverture : message de bienvenue si vide
+      if (!messages.hasChildNodes()) {
+        appendAIQuick("Bonjour — je suis RayhAI. Demande-moi quelque chose sur Rayhan.");
       }
     }
   });
 
-  // send message (user)
-  function sendCurrent(){
-    const txt = (inputEl.value || '').trim();
-    if(!txt) return;
-    appendUser(txt);
-    pushMemory('user', txt);
-    inputEl.value = '';
+  // send action
+  function sendCurrent() {
+    const val = (input.value || "").trim();
+    if (!val) return;
+    appendUserMessage(val);
+    input.value = "";
     // compute answer
-    const ans = generateAnswer(txt);
-    setTimeout(()=> { pushMemory('ai', ans); typeAndAppend(ans); }, 220);
+    const answer = generateAnswer(val);
+    // small delay then typing
+    setTimeout(() => appendAIMessage(answer), 220);
   }
 
-  sendBtn.addEventListener('click', sendCurrent);
-  inputEl.addEventListener('keydown', (e) => {
-    if(e.key === 'Enter'){ e.preventDefault(); sendCurrent(); }
-    if(e.key === 'Escape'){ panel.classList.remove('open'); }
+  sendBtn.addEventListener("click", sendCurrent);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") sendCurrent();
+    if (e.key === "Escape") {
+      // close panel on Esc
+      panel.classList.remove("open");
+    }
   });
 
-  // append user message
-  function appendUser(text){
-    const d = document.createElement('div'); d.className = 'message user'; d.textContent = text; messagesEl.appendChild(d); messagesEl.scrollTo({top:messagesEl.scrollHeight, behavior:'smooth'});
-  }
-
-  // typing + append AI
-  async function typeAndAppend(text){
-    const d = document.createElement('div'); d.className = 'message ai'; messagesEl.appendChild(d);
-    messagesEl.scrollTo({top:messagesEl.scrollHeight, behavior:'smooth'});
-    // type effect
-    const speed = 16; // ms per char
-    for(let i=0;i<=text.length;i++){
-      d.textContent = text.slice(0,i);
-      messagesEl.scrollTo({top:messagesEl.scrollHeight, behavior:'smooth'});
-      await new Promise(r => setTimeout(r, speed));
+  // expose API for debug or future updates
+  window.RayhAI = {
+    profile: RAYHAN,
+    generateAnswer,
+    detectIntent,
+    appendAIMessage,
+    appendUserMessage,
+    setProfile: (newProfile) => {
+      Object.assign(RAYHAN, newProfile);
+      if (headerTextName) headerTextName.textContent = RAYHAN.displayName + (RAYHAN.age ? ` • ${RAYHAN.age}` : "");
+      if (headerTextRole) headerTextRole.textContent = RAYHAN.studies;
     }
-  }
-
-  // expose debug
-  window.RayhAI = { R, memory, generateAnswer, detectIntent, pushMemory };
+  };
 });
+
 
 
 window.addEventListener("scroll", handleHeaderShrink);
