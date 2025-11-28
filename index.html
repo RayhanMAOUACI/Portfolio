@@ -24,28 +24,47 @@
   <span style="top: 85%; left: 60%; animation-delay: 10s;"></span>
 </div>
 
+<!-- === RAYHAI WIDGET (placez juste avant </body>) === -->
 <div id="rayhai-root">
+  <!-- Floating bubble -->
+  <button id="rayhai-bubble" aria-label="Ouvrir RayhAI">
+    <img id="rayhai-bubble-avatar" src="./rayhai.jpg" alt="RayhAI">
+  </button>
 
-    <div class="rayhai-bubble" id="rayhaiBubble">
-        <span class="rayhai-dot"></span>
-    </div>
-
-    <div class="rayhai-popup" id="rayhaiPopup">
-        <div class="rayhai-popup-header">
-            <h3>RayhAI</h3>
-            <button id="closeRayhai" class="rayhai-close">×</button>
+  <!-- Panel -->
+  <aside id="rayhai-panel" role="dialog" aria-hidden="true">
+    <header id="rayhai-panel-header">
+      <div id="rayhai-header-left">
+        <div id="rayhai-header-avatar">
+          <img src="./rayhai.jpg" alt="RayhAI">
         </div>
-
-        <div class="rayhai-chatbox"></div>
-
-        <div class="rayhai-input-zone">
-            <input type="text" class="rayhai-input" placeholder="Votre message…">
-            <button class="rayhai-send">Envoyer</button>
+        <div id="rayhai-header-text">
+          <div class="name">RayhAI</div>
+          <div class="role">Assistant — Infos publiques</div>
         </div>
-    </div>
+      </div>
+      <div id="rayhai-header-actions">
+        <button id="rayhai-toggle-copilot" title="Mode copilote">🛰</button>
+        <button id="rayhai-close" aria-label="Fermer">✕</button>
+      </div>
+    </header>
 
+    <main id="rayhai-main">
+      <div id="rayhai-lottie" aria-hidden="true"></div>
+
+      <div id="rayhai-messages" role="log" aria-live="polite"></div>
+
+      <div id="rayhai-typing" aria-hidden="true" class="hidden">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      </div>
+    </main>
+
+    <footer id="rayhai-footer">
+      <input id="rayhai-input" type="text" placeholder="Pose une question (ex: 'Qui est Rayhan ?')" />
+      <button id="rayhai-send" aria-label="Envoyer">Envoyer</button>
+    </footer>
+  </aside>
 </div>
-
 
 <canvas id="bg-particles"></canvas>
 

@@ -632,110 +632,147 @@ header.shrink {
   backdrop-filter: blur(18px);
 }
 
-/* =========================================
-   SÉCURISATION : rien ne peut bouger RayhAI
-   ========================================= */
+/* ===========================
+   RayhAI Widget — Isolé (A : avatar rond)
+   Placez ce bloc dans style.css
+   =========================== */
 
+/* Root isolation to avoid site conflicts */
 #rayhai-root {
-    all: initial;
-    position: fixed !important;
-    inset: auto auto 28px 28px !important;
-    z-index: 999999 !important;
-    display: block !important;
+  all: initial;
+  position: fixed !important;
+  left: 28px !important;
+  bottom: 28px !important;
+  z-index: 999999 !important;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color: #e6eef6;
 }
 
-/* Permet d'utiliser du style malgré all:initial */
-#rayhai-root *,
-#rayhai-root *::before,
-#rayhai-root *::after {
-    all: unset;
-    box-sizing: border-box;
+/* make root usable for children */
+#rayhai-root * { all: unset; box-sizing: border-box; }
+
+/* ---------- Bubble (bottom-left) ---------- */
+#rayhai-bubble {
+  position: fixed !important;
+  left: 28px !important;
+  bottom: 28px !important;
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg,#05202b 0%, #042634 100%);
+  border: 2px solid rgba(56,189,248,0.12);
+  box-shadow: 0 8px 30px rgba(3,11,25,0.6), 0 0 34px rgba(56,189,248,0.08);
+  cursor: pointer;
+  transition: transform .28s cubic-bezier(.2,.9,.3,1), box-shadow .28s;
+  -webkit-tap-highlight-color: transparent;
 }
 
+#rayhai-bubble:active { transform: scale(.98); }
 
-/* =====================================
-   BULLE FLOTTANTE
-   ===================================== */
-
-#rayhai-root .rayhai-bubble {
-    position: fixed !important;
-    bottom: 28px !important;
-    left: 28px !important;
-    width: 66px;
-    height: 66px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #00eaff, #0077ff);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    box-shadow: 0 0 25px rgba(0, 238, 255, 0.5);
-    animation: pulseRayhai 2.4s infinite ease-in-out;
-    z-index: 1000000 !important;
+/* avatar inside bubble */
+#rayhai-bubble-avatar {
+  width: 62%;
+  height: 62%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(56,189,248,0.95);
+  box-shadow: 0 6px 18px rgba(56,189,248,0.12);
+  display:block;
 }
 
-@keyframes pulseRayhai {
-    0% { transform: scale(1); box-shadow: 0 0 10px #00eaff; }
-    50% { transform: scale(1.08); box-shadow: 0 0 22px #00eaff; }
-    100% { transform: scale(1); box-shadow: 0 0 10px #00eaff; }
+/* bubble hover glow */
+#rayhai-bubble:hover {
+  transform: translateY(-6px) scale(1.04);
+  box-shadow: 0 20px 60px rgba(3,11,25,0.7), 0 0 80px rgba(56,189,248,0.12);
 }
 
-#rayhai-root .rayhai-dot {
-    width: 14px;
-    height: 14px;
-    background: white;
-    border-radius: 50%;
-    animation: dotPulse 1.6s infinite;
+/* ripple element (created by JS) */
+#rayhai-root .rayhai-ripple {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0.2);
+  pointer-events: none;
+  border: 2px solid rgba(56,189,248,0.16);
+  background: radial-gradient(circle, rgba(56,189,248,0.06), transparent 40%);
+  animation: rayhai-ripple 680ms ease-out forwards;
+}
+@keyframes rayhai-ripple {
+  to { transform: translate(-50%, -50%) scale(4.2); opacity: 0; }
 }
 
-@keyframes dotPulse {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(0.6); opacity: 0.5; }
-    100% { transform: scale(1); opacity: 1; }
+/* ---------- Panel (glass neon) ---------- */
+#rayhai-panel {
+  position: fixed !important;
+  left: 28px !important;
+  bottom: 110px !important;
+  width: 360px;
+  max-width: calc(100vw - 56px);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(6,10,16,0.86), rgba(8,12,20,0.9));
+  border: 1px solid rgba(56,189,248,0.06);
+  box-shadow: 0 18px 60px rgba(3,11,25,0.7), 0 0 50px rgba(56,189,248,0.06);
+  backdrop-filter: blur(12px) saturate(120%);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 999999;
 }
 
+/* open state */
+#rayhai-panel.open { display: flex; animation: rayhai-panel-open .28s cubic-bezier(.2,.9,.3,1) both; transform-origin: left bottom; }
+@keyframes rayhai-panel-open { from { transform: translateY(8px) scale(.985); opacity: 0 } to { transform: translateY(0) scale(1); opacity:1 } }
 
-/* =====================================
-   POPUP IA
-   ===================================== */
-
-#rayhai-root .rayhai-popup {
-    position: fixed !important;
-    bottom: 110px !important;
-    left: 28px !important;
-    width: 340px;
-    height: 460px;
-    border-radius: 18px;
-    background: rgba(20,20,20,0.75);
-    backdrop-filter: blur(15px);
-    border: 1px solid rgba(255,255,255,0.12);
-    box-shadow: 0 0 25px rgba(0, 247, 255, 0.3);
-    display: none;
-    flex-direction: column;
-    padding: 15px;
-    z-index: 1000000 !important;
-    animation: slideUp 0.3s ease-out;
+/* header */
+#rayhai-panel-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.02);
 }
 
-@keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
+#rayhai-header-left { display:flex; gap:12px; align-items:center; }
+#rayhai-header-avatar { width:48px; height:48px; border-radius:50%; overflow:hidden; border:2px solid rgba(56,189,248,0.9); box-shadow: 0 8px 28px rgba(56,189,248,0.06); }
+#rayhai-header-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+#rayhai-header-text .name { color: #38bdf8; font-weight:700; font-size:1rem; }
+#rayhai-header-text .role { color: #9ca3af; font-size:0.82rem; margin-top:2px; }
 
-#rayhai-root .rayhai-popup-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.15);
-}
+/* header actions */
+#rayhai-header-actions { display:flex; gap:8px; align-items:center; }
+#rayhai-header-actions button { background:transparent; border:1px solid rgba(255,255,255,0.03); color: #9ca3af; padding:6px 8px; border-radius:8px; cursor:pointer; }
+#rayhai-header-actions button:hover { color:#38bdf8; transform: translateY(-2px); }
 
-#rayhai-root .rayhai-close {
-    font-size: 22px;
-    cursor: pointer;
-    opacity: 0.7;
-}
+/* main messages */
+#rayhai-main { padding:10px 14px 6px 14px; display:flex; flex-direction:column; gap:8px; }
+#rayhai-messages { display:flex; flex-direction:column; gap:10px; overflow-y:auto; max-height: 320px; padding-right:6px; scroll-behavior:smooth; }
 
-#rayhai-root .rayhai-close:hover {
-    opacity: 1;
+/* typing indicator */
+#rayhai-typing { display:flex; gap:8px; align-items:center; padding-left:6px; color:#9ca3af; font-size:0.9rem; }
+#rayhai-typing.hidden { display:none; }
+#rayhai-typing .dot { width:8px; height:8px; background:#38bdf8; border-radius:50%; opacity:0.7; animation: dotBlink 1s infinite; }
+#rayhai-typing .dot:nth-child(2){ animation-delay:.12s } #rayhai-typing .dot:nth-child(3){ animation-delay:.24s }
+@keyframes dotBlink { 0%{opacity:.15} 50%{opacity:1} 100%{opacity:.15} }
+
+/* messages */
+.r-message { max-width:80%; padding:10px 12px; border-radius:10px; font-size:14px; line-height:1.35; box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
+.r-user { align-self:flex-end; background: linear-gradient(180deg,#38bdf8,#0cc3ff); color:#00121a; font-weight:600; }
+.r-ai { align-self:flex-start; background: linear-gradient(180deg, rgba(20,30,44,0.9), rgba(12,18,28,0.9)); border:1px solid rgba(56,189,248,0.06); color:#e6eef6; }
+
+/* footer / input */
+#rayhai-footer { display:flex; gap:8px; padding:12px; border-top:1px solid rgba(255,255,255,0.02); background: linear-gradient(180deg, rgba(0,0,0,0.03), transparent); }
+#rayhai-input { flex:1; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.03); background: rgba(6,9,14,0.6); color:#e6eef6; outline:none; font-size:14px; }
+#rayhai-send { padding:10px 14px; border-radius:10px; border:none; background: linear-gradient(180deg,#38bdf8,#0cc3ff); color:#00121a; font-weight:700; cursor:pointer; }
+
+/* scroll look */
+#rayhai-messages::-webkit-scrollbar { width:6px }
+#rayhai-messages::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.18); border-radius:4px }
+
+/* responsive */
+@media (max-width:420px){
+  #rayhai-panel { left: 12px !important; bottom: 92px !important; width: calc(100% - 24px) !important; }
+  #rayhai-bubble { left: 12px !important; bottom: 12px !important; }
 }

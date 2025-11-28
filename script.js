@@ -228,104 +228,154 @@ function handleHeaderShrink() {
   }
 }
 
-/* ==================================================
-   RAYHAI – IA PERSONNALISÉE
-   Sans image, moderne, rapide
-   ================================================== */
+// ================================
+// RAYHAI — ASSISTANT INTELLIGENT
+// ================================
 
-const aiBox = document.querySelector(".rayhai-chatbox");
-const aiInput = document.querySelector(".rayhai-input");
-const aiSend = document.querySelector(".rayhai-send");
+// Elements
+const bubble = document.getElementById("rayhai-bubble");
+const panel = document.getElementById("rayhai-panel");
+const messages = document.getElementById("rayhai-messages");
+const input = document.getElementById("rayhai-input");
+const send = document.getElementById("rayhai-send");
 
-/* PERSONNALITÉ IA CONFIG */
-const profile = {
-    name: "RayhAI",
-    owner: "Rayhan",
-    age: 18,
-    study: "Bac Pro CIEL – Terminale",
-    interests: [
-        "Informatique",
-        "Cybersécurité",
-        "Réseau",
-        "Musculation",
-        "Valorant"
-    ],
-    quality: "Aim, gamesense, structure et logique",
-    defaultDescription:
-        "Assistant — Infos publiques : Je suis RayhAI, l’assistant personnel de Rayhan. Je fournis des informations générales le concernant, son parcours, ses compétences et ses centres d’intérêt."
-};
+let rayhaiOpenedOnce = false;
+let isTyping = false;
 
-/* Fonction générer bulle */
-function addMessage(content, sender = "bot") {
-    const msg = document.createElement("div");
-    msg.classList.add("rayhai-msg", sender === "user" ? "user-msg" : "bot-msg");
-    msg.textContent = content;
-    aiBox.appendChild(msg);
+// ------------------------------------
+// OUVERTURE / FERMETURE DE LA BULLE
+//-------------------------------------
+bubble.addEventListener("click", () => {
+    panel.classList.toggle("open");
 
-    aiBox.scrollTop = aiBox.scrollHeight;
+    // Effet d'onde neon
+    createRipple(bubble);
+
+    if (!rayhaiOpenedOnce) {
+        setTimeout(() => {
+            rayhaiSendMessage("Bonjour, je suis RayhAI. Pose-moi une question me concernant.");
+        }, 350);
+        rayhaiOpenedOnce = true;
+    }
+});
+
+// Ripple neon
+function createRipple(element) {
+    const ripple = document.createElement("span");
+    ripple.classList.add("ripple");
+    element.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 600);
 }
 
-/* IA SIMPLE + RÉPONSES STRUCTURÉES */
-function generateAIResponse(userText) {
+// ------------------------------------
+// ENVOI DE MESSAGE
+//-------------------------------------
+send.addEventListener("click", sendUserMessage);
+input.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendUserMessage();
+});
 
-    const input = userText.toLowerCase();
-
-    // Questions info personnelles
-    if (input.includes("qui est rayhan") || input.includes("présente rayhan")) {
-        return `Rayhan, 18 ans, étudiant en ${profile.study}. Passionné par ${profile.interests.join(", ")}. Très bon joueur Valorant.`;
-    }
-
-    if (input.includes("age") || input.includes("a quel âge")) {
-        return `Rayhan a ${profile.age} ans.`;
-    }
-
-    if (input.includes("étude") || input.includes("formation")) {
-        return `Il est actuellement en ${profile.study}.`;
-    }
-
-    if (input.includes("centres") || input.includes("intérêt")) {
-        return `Ses centres d’intérêt incluent : ${profile.interests.join(", ")}.`;
-    }
-
-    if (input.includes("jeu") || input.includes("valorant")) {
-        return `Sur Valorant, Rayhan possède un niveau global très solide, notamment grâce à son aim et son sens du jeu.`;
-    }
-
-    // Réponse générique
-    return `Je suis RayhAI. Je peux fournir des informations concernant Rayhan, ses études, ses compétences ou ses centres d’intérêt.`;
-}
-
-/* EVENT – ENVOI MESSAGE */
-function sendAI() {
-    const text = aiInput.value.trim();
+function sendUserMessage() {
+    const text = input.value.trim();
     if (text === "") return;
 
     addMessage(text, "user");
-
-    aiInput.value = "";
+    input.value = "";
 
     setTimeout(() => {
-        const response = generateAIResponse(text);
-        addMessage(response, "bot");
-    }, 350);
+        processRayhaiAI(text);
+    }, 250);
 }
 
-aiSend.addEventListener("click", sendAI);
-aiInput.addEventListener("keypress", e => {
-    if (e.key === "Enter") sendAI();
-});
+// ------------------------------------
+// AJOUT MESSAGE
+//-------------------------------------
+function addMessage(text, sender) {
+    const div = document.createElement("div");
+    div.classList.add("msg", sender);
+    div.innerText = text;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+}
 
-const bubble = document.getElementById("rayhaiBubble");
-const popup = document.getElementById("rayhaiPopup");
-const closeBtn = document.getElementById("closeRayhai");
+// ------------------------------------
+// TYPING EFFECT
+//-------------------------------------
+function rayhaiSendMessage(text) {
+    if (isTyping) return;
 
-bubble.addEventListener("click", () => {
-    popup.style.display = "flex";
-});
+    isTyping = true;
 
-closeBtn.addEventListener("click", () => {
-    popup.style.display = "none";
-});
+    const typingDiv = document.createElement("div");
+    typingDiv.classList.add("msg", "rayhai");
+    typingDiv.innerHTML = "<span class='typing-dots'><span>.</span><span>.</span><span>.</span></span>";
+
+    messages.appendChild(typingDiv);
+    messages.scrollTop = messages.scrollHeight;
+
+    let i = 0;
+    setTimeout(() => {
+        typingDiv.innerHTML = "";
+        const interval = setInterval(() => {
+            typingDiv.innerText = text.substring(0, i);
+            i++;
+            messages.scrollTop = messages.scrollHeight;
+
+            if (i > text.length) {
+                clearInterval(interval);
+                isTyping = false;
+            }
+        }, 20);
+    }, 600);
+}
+
+// ------------------------------------
+// INTENTIONS — IA LOCALE AMÉLIORÉE
+//-------------------------------------
+function processRayhaiAI(question) {
+    const q = question.toLowerCase();
+
+    // Intentions simples
+    if (["salut", "bonjour", "yo", "wesh"].some(x => q.includes(x)))
+        return rayhaiSendMessage("Salut ! Comment puis-je t'aider ?");
+
+    if (q.includes("ça va") || q.includes("tu vas bien"))
+        return rayhaiSendMessage("Je vais parfaitement, merci. Prêt à t’aider quand tu veux.");
+
+    if (q.includes("t'es qui") || q.includes("qui es tu") || q.includes("c'est quoi rayhai"))
+        return rayhaiSendMessage("Je suis RayhAI, l’assistant personnel de Rayhan. Je réponds à toutes les questions publiques sur lui.");
+
+    // Infos personnelles
+    const data = {
+        age: "Rayhan a 18 ans.",
+        ville: "Rayhan habite à Toulon.",
+        etudes: "Rayhan est en Bac Pro CIEL, Terminale.",
+        interets: "Il s'intéresse à l'informatique, la cybersécurité, le réseau et la musculation.",
+        jeux: "Son jeu favori est Valorant.",
+        niveau: "Il possède un très bon niveau sur la plupart des jeux, particulièrement Valorant."
+    };
+
+    if (q.includes("âge") || q.includes("age") || q.includes("ans"))
+        return rayhaiSendMessage(data.age);
+
+    if (q.includes("ville") || q.includes("habite") || q.includes("où il vit"))
+        return rayhaiSendMessage(data.ville);
+
+    if (q.includes("étude") || q.includes("ecole") || q.includes("bac") || q.includes("ciel"))
+        return rayhaiSendMessage(data.etudes);
+
+    if (q.includes("intérêt") || q.includes("passion") || q.includes("loisir"))
+        return rayhaiSendMessage(data.interets);
+
+    if (q.includes("jeu") || q.includes("favori") || q.includes("val"))
+        return rayhaiSendMessage(data.jeux);
+
+    if (q.includes("niveau") || q.includes("fort") || q.includes("skill"))
+        return rayhaiSendMessage(data.niveau);
+
+    // Fallback
+    rayhaiSendMessage("Je ne suis pas certain d'avoir compris, mais je peux répondre à tout ce qui concerne Rayhan.");
+}
 
 
 window.addEventListener("scroll", handleHeaderShrink);
