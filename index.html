@@ -4,54 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Portfolio – Rayhan Maouaci</title>
-  <meta name="description" content="Portfolio de Rayhan Maouaci, élève en Terminale Bac Pro CIEL, passionné par l'informatique, les réseaux, la cybersécurité et l'électronique.">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RayhAI</title>
-    <link rel="stylesheet" href="style.css">
+  <meta name="description" content="Portfolio de Rayhan Maouaci, élève en Terminale Bac Pro CIEL.">
+  <link rel="stylesheet" href="style.css">
 </head>
-
-</head>
-
-<div class="animated-bg">
-  <span style="top: 10%; left: 20%; animation-delay: 0s;"></span>
-  <span style="top: 40%; left: 70%; animation-delay: 2s;"></span>
-  <span style="top: 75%; left: 30%; animation-delay: 4s;"></span>
-  <span style="top: 20%; left: 85%; animation-delay: 6s;"></span>
-  <span style="top: 60%; left: 10%; animation-delay: 8s;"></span>
-  <span style="top: 85%; left: 60%; animation-delay: 10s;"></span>
-</div>
-
-<canvas id="bg-particles"></canvas>
-
-<!-- RAYHAI — IA FLOATING ASSISTANT -->
-<div id="rayhai-bubble">
-    <div class="inner-glow"></div>
-    <span class="rayhai-pulse"></span>
-</div>
-
-<div id="rayhai-panel">
-    <div class="rayhai-header">
-        <div class="rayhai-avatar"></div>
-        <div class="rayhai-info">
-            <h3>RayhAI</h3>
-            <p>Assistant — Infos publiques</p>
-        </div>
-        <span id="rayhai-close">×</span>
-    </div>
-
-    <div id="rayhai-messages"></div>
-
-    <div class="rayhai-input-zone">
-        <input id="rayhai-input" type="text" placeholder="Écris ta question..." />
-        <button id="rayhai-send">Envoyer</button>
-    </div>
-</div>
-
 
 <body data-theme="dark">
+
+  <!-- FOND ANIMÉ -->
+  <div class="animated-bg">
+    <span style="top: 10%; left: 20%; animation-delay: 0s;"></span>
+    <span style="top: 40%; left: 70%; animation-delay: 2s;"></span>
+    <span style="top: 75%; left: 30%; animation-delay: 4s;"></span>
+    <span style="top: 20%; left: 85%; animation-delay: 6s;"></span>
+    <span style="top: 60%; left: 10%; animation-delay: 8s;"></span>
+    <span style="top: 85%; left: 60%; animation-delay: 10s;"></span>
+  </div>
+
+  <!-- CANVAS PARTICULES -->
+  <canvas id="bg-particles"></canvas>
+
+  <!-- HEADER -->
   <header>
     <div class="nav-container">
       <div class="logo">RAYHAN MAOUACI</div>
@@ -229,7 +201,7 @@
       </div>
     </section>
 
-    <!-- CITATIONS + MINDSET -->
+    <!-- CITATIONS -->
     <section id="citations" class="reveal">
       <h2 class="section-title"><span></span>Mindset, rappels & citations</h2>
 
@@ -280,7 +252,7 @@
       </div>
     </section>
 
-    <!-- EXPERIENCE (TIMELINE) -->
+    <!-- EXPERIENCE -->
     <section id="experience" class="reveal">
       <h2 class="section-title"><span></span>Parcours & expériences</h2>
 
@@ -303,7 +275,7 @@
       </div>
     </section>
 
-    <!-- CONTACT & RÉSEAUX -->
+    <!-- CONTACT -->
     <section id="contact" class="reveal">
       <h2 class="section-title"><span></span>Contact & réseaux sociaux</h2>
 
@@ -350,8 +322,33 @@
     © <span id="year"></span> – Portfolio de Rayhan Maouaci
   </footer>
 
-    <!-- LIEN JS -->
+<link rel="stylesheet" href="ai/rayhai.css">
+
+<div id="rayhai-container">
+
+    <!-- Bulle d'ouverture -->
+    <div id="rayhai-bubble">
+        <span>💬</span>
+    </div>
+
+    <!-- Panel IA -->
+    <div id="rayhai-panel">
+        <div class="rayhai-header">
+            <h2>RayhAI</h2>
+            <button id="rayhai-close">×</button>
+        </div>
+
+        <div id="rayhai-messages"></div>
+
+        <div class="rayhai-input">
+            <input id="rayhai-text" placeholder="Pose ta question…">
+            <button id="rayhai-send">→</button>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="ai/rayhai.js"></script>
   <script src="script.js"></script>
-  
+
 </body>
 </html>

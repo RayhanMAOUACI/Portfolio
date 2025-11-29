@@ -1,0 +1,71 @@
+:root{
+  --bg: #020617;
+  --panel: rgba(15,23,42,0.95);
+  --muted: #9ca3af;
+  --accent: #38bdf8;
+  --glass: rgba(255,255,255,0.04);
+  --radius: 14px;
+  --shadow: 0 18px 40px rgba(0,0,0,0.6);
+  --text: #e5e7eb;
+}
+
+#rayhai-container{ position: fixed; right: 26px; bottom: 26px; z-index: 99999; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+
+/* Bubble */
+#rayhai-bubble{
+  width:64px; height:64px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(135deg, rgba(56,189,248,0.14), rgba(56,189,248,0.06));
+  border:1px solid rgba(56,189,248,0.12);
+  box-shadow: var(--shadow);
+  cursor:pointer; color:var(--text); font-size:26px;
+  backdrop-filter: blur(8px);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+#rayhai-bubble:hover{ transform: scale(1.06); box-shadow: 0 28px 60px rgba(56,189,248,0.08); }
+
+/* Panel */
+#rayhai-panel{
+  width: 380px; height: 520px; border-radius: 16px;
+  background: linear-gradient(180deg, rgba(6,10,18,0.95), rgba(10,14,24,0.98));
+  border: 1px solid rgba(255,255,255,0.03);
+  box-shadow: 0 30px 80px rgba(2,8,23,0.8);
+  overflow: hidden; display: flex; flex-direction: column; transform-origin: bottom right;
+  opacity:0; pointer-events:none; transform: translateY(10px) scale(.98); transition: all .22s cubic-bezier(.2,.9,.2,1);
+}
+
+/* Active */
+#rayhai-panel.active{ opacity:1; pointer-events:auto; transform: translateY(0) scale(1); }
+
+/* Header */
+.rayhai-header{ padding:14px 16px; display:flex; gap:12px; align-items:center; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.rayhai-avatar{ width:44px; height:44px; border-radius:10px; background:linear-gradient(135deg,var(--accent),#7dd3fc); display:flex; align-items:center; justify-content:center; color:#021; font-weight:700; }
+.rayhai-title{ font-weight:700; color:var(--text); font-size:16px; }
+.rayhai-sub{ font-size:12px; color:var(--muted); }
+
+/* Messages */
+#rayhai-messages{ padding:14px; flex:1; overflow:auto; display:flex; flex-direction:column; gap:10px; background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent); }
+.msg{ max-width: 86%; padding:10px 12px; border-radius:10px; line-height:1.35; font-size:14px; word-break:break-word; }
+.msg.ai{ background: linear-gradient(180deg, rgba(56,189,248,0.08), rgba(56,189,248,0.03)); color:var(--text); align-self:flex-start; border:1px solid rgba(56,189,248,0.06); }
+.msg.user{ background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); color:var(--text); align-self:flex-end; border:1px solid rgba(255,255,255,0.03); }
+
+/* Quick suggestions */
+.rayhai-suggestions{ display:flex; gap:8px; padding:8px 14px; flex-wrap:wrap; border-top:1px solid rgba(255,255,255,0.02); }
+.chip{ background:var(--glass); border:1px solid rgba(255,255,255,0.03); padding:8px 12px; border-radius:999px; font-size:13px; color:var(--muted); cursor:pointer; transition:all .14s; }
+.chip:hover{ transform: translateY(-3px); color:var(--text); border-color:var(--accent); }
+
+/* Input */
+.rayhai-input{ display:flex; gap:8px; padding:12px; border-top:1px solid rgba(255,255,255,0.02); background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.01)); }
+#rayhai-text{ flex:1; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.03); background: rgba(0,0,0,0.25); color:var(--text); outline:none; font-size:14px; }
+.rayhai-actions{ display:flex; gap:8px; align-items:center; }
+.btn-ghost{ padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,0.03); background:transparent; color:var(--muted); cursor:pointer; }
+.btn-primary{ padding:8px 10px; border-radius:10px; border:none; background:linear-gradient(90deg,var(--accent),#7dd3fc); color:#021; cursor:pointer; }
+
+/* Typing indicator */
+.typing{ display:inline-block; width:38px; height:10px; background:linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)); border-radius:8px; opacity:.9; }
+
+/* Small responsive */
+@media (max-width:480px){
+  #rayhai-panel{ width: calc(100vw - 40px); right:20px; left:20px; bottom: 86px; height: 64vh; }
+  #rayhai-bubble{ right:20px; bottom:20px; }
+}
