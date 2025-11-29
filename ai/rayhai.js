@@ -1,160 +1,251 @@
-// ai/rayhai.js (type="module")
-import { loadPersona, generateReply, addMemory, setOpenAIKey, loadPersona as lp } from './engine.js';
+// ai/rayhai.js (module)
+// UI orchestration, suggestions, settings (OpenAI key UI), streaming of replies.
 
-const container = document.getElementById('rayhai-container') || createContainer();
-const bubble = ensureEl('rayhai-bubble', container, `<span>💬</span>`);
-const panel = ensureEl('rayhai-panel', container);
-const messages = ensureChild('rayhai-messages', panel);
-const closeBtn = ensureChild('rayhai-close', panel, null, true);
-const input = ensureChild('rayhai-text', panel, null, true);
-const sendBtn = ensureChild('rayhai-send', panel, null, true);
-const suggestionsArea = ensureSuggestionsArea(panel);
+import { loadPersona, generateReply, addMemory, setOpenAIKey, getOpenAIKey, clearMemories } from './engine.js';
 
-let persona = null;
-let openAIPromptEnabled = false;
-
-async function init(){
-  persona = await loadPersona();
-  // warm welcome
-  pushAi(`Salut — je suis RayhAI. Pose-moi une question sur Rayhan (évite les jeux vidéo).`);
-  // render suggestion chips
-  renderSuggestions(["Présentation", "Compétences", "Projets", "Contact", "Mon objectif"]);
-}
-init();
-
-/* ---------- helpers ---------- */
-function createContainer(){
-  const c = document.createElement('div'); c.id = 'rayhai-container';
-  document.body.appendChild(c);
-  return c;
-}
-function ensureEl(id, parent, html=null){
-  let e = document.getElementById(id);
-  if(!e){
-    e = document.createElement('div'); e.id = id;
-    if(html) e.innerHTML = html;
-    parent.appendChild(e);
+// safe DOM helpers
+const $ = (sel, ctx=document) => ctx.querySelector(sel);
+const el = (tag, props={}, children=[]) => {
+  const e = document.createElement(tag);
+  for(const k in props){
+    if(k === 'class') e.className = props[k];
+    else if(k === 'html') e.innerHTML = props[k];
+    else e.setAttribute(k, props[k]);
   }
+  children.forEach(c => e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c));
   return e;
+};
+
+// Ensure container exists
+let container = document.getElementById('rayhai-container');
+if(!container){
+  container = el('div', { id: 'rayhai-container' });
+  document.body.appendChild(container);
 }
-function ensureChild(id, parent, html=null, asInput=false){
-  let el = parent.querySelector('#'+id);
-  if(!el){
-    if(asInput){
-      if(id === 'rayhai-text'){
-        el = document.createElement('input'); el.id = id; el.placeholder = 'Pose ta question...';
-      } else if(id === 'rayhai-send'){
-        el = document.createElement('button'); el.id = id; el.textContent = '→';
-      } else if(id === 'rayhai-close'){
-        el = document.createElement('button'); el.id = id; el.textContent = '×';
-      }
-    } else {
-      el = document.createElement('div'); el.id = id; if(html) el.innerHTML = html;
-    }
-    parent.appendChild(el);
+
+// Build/ensure UI elements (idempotent)
+function ensureStructure() {
+  if(!$('#rayhai-bubble', container)) {
+    container.appendChild(el('div', { id:'rayhai-bubble', 'aria-label':'Ouvrir RayhAI', title:'RayhAI' }, [el('span',{html:'💬'})]));
   }
-  return el;
+  if(!$('#rayhai-panel', container)) {
+    const panel = el('div', { id:'rayhai-panel', 'aria-hidden':'true' });
+    const header = el('div', { class:'rayhai-header' }, [
+      el('div', { class:'rayhai-avatar', html: 'R' }),
+      el('div', { class:'rayhai-title', html: 'RayhAI' }),
+      el('div', { class:'rayhai-sub', html: '' })
+    ]);
+    // settings (gear) and close
+    const settingsBtn = el('button', { class:'btn-ghost', id:'rayhai-settings', title:'Paramètres' }, [document.createTextNode('⚙')]);
+    const closeBtn = el('button', { id:'rayhai-close', title:'Fermer' }, [document.createTextNode('×')]);
+    header.appendChild(settingsBtn);
+    header.appendChild(closeBtn);
+
+    const messages = el('div', { id:'rayhai-messages', role:'log', 'aria-live':'polite' }, []);
+    const suggestions = el('div', { class:'rayhai-suggestions', id:'rayhai-suggestions' }, []);
+    const inputRow = el('div', { class:'rayhai-input' }, [
+      el('input', { id:'rayhai-text', placeholder:'Pose ta question...' }),
+      el('div', { class:'rayhai-actions' }, [
+        el('button', { class:'btn-ghost', id:'rayhai-voice', title:'Lire la réponse' }, [document.createTextNode('🔊')]),
+        el('button', { class:'btn-primary', id:'rayhai-send' }, [document.createTextNode('→')])
+      ])
+    ]);
+    panel.appendChild(header);
+    panel.appendChild(messages);
+    panel.appendChild(suggestions);
+    panel.appendChild(inputRow);
+
+    // settings modal (simple)
+    const modal = el('div', { id:'rayhai-settings-modal', style:'display:none; position: absolute; right: 28px; bottom: 580px; width: 360px; z-index:100000;' }, [
+      el('div', { style:'background:var(--panel); padding:12px; border-radius:12px; box-shadow:var(--shadow);' }, [
+        el('h3', { html:'Paramètres RayhAI', style:'margin:0 0 8px 0; font-size:15px;' }),
+        el('div', { html:'OpenAI API Key (optionnel — à ne pas publier dans GitHub).', style:'font-size:12px; color:var(--muted); margin-bottom:6px;' }),
+        el('input', { id:'rayhai-openai-key', placeholder:'sk-...', type:'text', style:'width:100%; padding:8px; margin-bottom:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background:transparent; color:var(--text);' }),
+        el('div', { style:'display:flex; gap:8px; justify-content:flex-end;' }, [
+          el('button', { class:'btn-ghost', id:'rayhai-reset-mem' }, [document.createTextNode('Effacer mémoires')]),
+          el('button', { class:'btn-primary', id:'rayhai-save-key' }, [document.createTextNode('Enregistrer')])
+        ])
+      ])
+    ]);
+    panel.appendChild(modal);
+
+    container.appendChild(panel);
+  }
 }
-function ensureSuggestionsArea(parent){
-  let s = parent.querySelector('.rayhai-suggestions');
-  if(!s){ s = document.createElement('div'); s.className = 'rayhai-suggestions'; parent.appendChild(s); }
-  return s;
+
+ensureStructure();
+
+// Bind elements
+const bubble = $('#rayhai-bubble', container);
+const panel = $('#rayhai-panel', container);
+const closeBtn = $('#rayhai-close', container);
+const messagesWrap = $('#rayhai-messages', container);
+const inputEl = $('#rayhai-text', container);
+const sendBtn = $('#rayhai-send', container);
+const suggestionsWrap = $('#rayhai-suggestions', container);
+const settingsBtn = $('#rayhai-settings', container);
+const settingsModal = $('#rayhai-settings-modal', container);
+const saveKeyBtn = $('#rayhai-save-key', container);
+const keyInput = $('#rayhai-openai-key', container);
+const resetMemBtn = $('#rayhai-reset-mem', container);
+const voiceBtn = $('#rayhai-voice', container);
+
+// state
+let PERSONA = null;
+let openAIAvailable = !!localStorage.getItem('rayhai_openai_key_v1');
+let voiceEnabled = false;
+
+// load persona and warm message
+(async function init(){
+  PERSONA = await loadPersona();
+  pushAi(`Salut — je suis RayhAI. Pose-moi une question sur Rayhan (évite les jeux vidéo).`);
+  renderSuggestions(['Présentation', 'Compétences', 'Projets', 'Contact', 'Objectif']);
+  // put stored key into keyInput for convenience
+  keyInput.value = localStorage.getItem('rayhai_openai_key_v1') || '';
+})();
+
+// UI helpers
+function pushAi(text) {
+  appendMessage('ai', text);
+  if(voiceEnabled) speak(text);
+}
+function pushUser(text) {
+  appendMessage('user', text);
+}
+function appendMessage(kind, text) {
+  const node = el('div', { class: 'msg ' + (kind==='ai' ? 'ai' : 'user') }, [document.createTextNode(text)]);
+  messagesWrap.appendChild(node);
+  messagesWrap.scrollTop = messagesWrap.scrollHeight;
 }
 
-function pushAi(text){ appendMessage('ai', text); }
-function pushUser(text){ appendMessage('user', text); addMemory(text); }
-
-function appendMessage(kind, text){
-  const node = document.createElement('div'); node.className = 'msg ' + (kind==='ai' ? 'ai' : 'user');
-  // basic markdown-ish: links
-  node.innerHTML = sanitizeAndLinkify(text);
-  messages.appendChild(node);
-  messages.scrollTop = messages.scrollHeight;
+// toggles
+function openPanel() {
+  panel.classList.add('active');
+  panel.setAttribute('aria-hidden','false');
+  inputEl.focus();
+}
+function closePanel() {
+  panel.classList.remove('active');
+  panel.setAttribute('aria-hidden','true');
 }
 
-function sanitizeAndLinkify(s){
-  const t = String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  return t.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
-}
+// events
+bubble.addEventListener('click', ()=> {
+  if(panel.classList.contains('active')) closePanel();
+  else openPanel();
+});
+closeBtn.addEventListener('click', closePanel);
 
-/* ---------- UI wiring ---------- */
-bubble.addEventListener('click', ()=> togglePanel(true));
-closeBtn.addEventListener('click', ()=> togglePanel(false));
-sendBtn.addEventListener('click', onSend);
-input.addEventListener('keydown', (e)=>{ if(e.key==='Enter') onSend(); });
+// settings
+settingsBtn.addEventListener('click', ()=> {
+  settingsModal.style.display = settingsModal.style.display === 'none' ? 'block' : 'none';
+});
+saveKeyBtn.addEventListener('click', ()=> {
+  const k = keyInput.value.trim();
+  if(!k) {
+    // remove key
+    localStorage.removeItem('rayhai_openai_key_v1');
+    alert('OpenAI key supprimée (local). Utilisation : fallback local actif).');
+  } else {
+    localStorage.setItem('rayhai_openai_key_v1', k);
+    alert('OpenAI key enregistrée localement. Pour production utilisez un proxy serveur.');
+  }
+  openAIAvailable = !!localStorage.getItem('rayhai_openai_key_v1');
+  settingsModal.style.display = 'none';
+});
+resetMemBtn.addEventListener('click', ()=> {
+  if(confirm('Effacer toutes les mémoires locales ?')) {
+    clearMemories();
+    alert('Mémoires effacées.');
+  }
+});
 
-// suggestion chips handler
-function renderSuggestions(arr){
-  suggestionsArea.innerHTML = '';
-  arr.forEach(t=>{
-    const chip = document.createElement('button'); chip.className='chip'; chip.textContent = t;
+// suggestions
+function renderSuggestions(arr=[]) {
+  suggestionsWrap.innerHTML = '';
+  arr.forEach(t => {
+    const chip = el('button', { class: 'chip' }, [document.createTextNode(t)]);
     chip.addEventListener('click', ()=> {
-      input.value = t;
+      inputEl.value = t;
       onSend();
     });
-    suggestionsArea.appendChild(chip);
+    suggestionsWrap.appendChild(chip);
   });
 }
 
-/* ---------- send flow ---------- */
-let pending = false;
-async function onSend(){
-  if(pending) return;
-  const text = (input.value||'').trim();
-  if(!text) return;
-  pushUser(text);
-  input.value = ''; pending = true;
-  // show typing indicator
-  const typing = document.createElement('div'); typing.className='msg ai'; typing.innerHTML = '<div class="typing"></div>';
-  messages.appendChild(typing); messages.scrollTop = messages.scrollHeight;
+// send flow
+let busy = false;
+async function onSend() {
+  if(busy) return;
+  const txt = (inputEl.value || '').trim();
+  if(!txt) return;
+  pushUser(txt);
+  inputEl.value = '';
+  busy = true;
+
+  // typing indicator
+  const typing = el('div', { class: 'msg ai' }, [el('div', { class:'typing' })]);
+  messagesWrap.appendChild(typing);
+  messagesWrap.scrollTop = messagesWrap.scrollHeight;
+
   try {
-    const reply = await generateReply(text, { useOpenAIIfAvailable: openAIPromptEnabled });
+    // choose to use OpenAI if user provided a key
+    const useOpenAI = !!localStorage.getItem('rayhai_openai_key_v1');
+    const reply = await generateReply(txt, { useOpenAIIfAvailable: useOpenAI });
     typing.remove();
     // stream-like reveal
     await streamReveal(reply);
-  } catch(e){
+  } catch(err) {
     typing.remove();
     pushAi("Désolé, une erreur est survenue lors de la génération.");
-    console.error(e);
-  } finally { pending=false; }
+    console.error('rayhai error', err);
+  } finally { busy = false; }
 }
 
-function streamReveal(text){
-  return new Promise(res=>{
-    const node = document.createElement('div'); node.className='msg ai'; const inner = document.createElement('div'); node.appendChild(inner);
-    messages.appendChild(node);
-    let i=0; const speed = 12;
-    const id = setInterval(()=> {
-      i++; inner.textContent = text.slice(0,i);
-      messages.scrollTop = messages.scrollHeight;
-      if(i>=text.length){ clearInterval(id); res(); }
+// streaming reveal (typewriter)
+function streamReveal(text) {
+  return new Promise(res=> {
+    const node = el('div', { class: 'msg ai' }, [el('div', { html: '' })]);
+    messagesWrap.appendChild(node);
+    const inner = node.firstElementChild;
+    let i = 0;
+    const speed = 12 + Math.random()*8;
+    const id = setInterval(()=>{
+      i++;
+      inner.textContent = text.slice(0,i);
+      messagesWrap.scrollTop = messagesWrap.scrollHeight;
+      if(i >= text.length) {
+        clearInterval(id);
+        res();
+      }
     }, speed);
   });
 }
 
-/* ---------- panel toggle + keyboard accessibility ---------- */
-function togglePanel(open){
-  if(open){
-    panel.classList.add('active');
-    input.focus();
-  } else {
-    panel.classList.remove('active');
+// keyboard and button
+sendBtn.addEventListener('click', onSend);
+inputEl.addEventListener('keydown', (e)=> {
+  if(e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    onSend();
   }
-}
+});
 
-/* ---------- voice synthesis (toggleable) ---------- */
-export function speak(text){
+// voice read
+voiceBtn.addEventListener('click', ()=> {
+  voiceEnabled = !voiceEnabled;
+  voiceBtn.textContent = voiceEnabled ? '🔇' : '🔊';
+});
+function speak(text) {
   if(!('speechSynthesis' in window)) return;
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'fr-FR';
-  u.rate = 1;
+  const ut = new SpeechSynthesisUtterance(text);
+  ut.lang = 'fr-FR';
+  ut.rate = 1;
   speechSynthesis.cancel();
-  speechSynthesis.speak(u);
+  speechSynthesis.speak(ut);
 }
 
-/* ---------- admin helpers (set OpenAI key from UI) ---------- */
-window.RayhAI = {
-  setOpenAIKey: (k) => { setOpenAIKey(k); openAIPromptEnabled = !!k; alert('OpenAI key enregistrée localement.'); },
-  clearMemories: ()=>{ if(confirm('Effacer les mémoires locales ?')) { localStorage.removeItem('rayhai_memories_v1'); alert('Mémoires effacées.'); } }
-};
+// accessibility: close on ESC
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') closePanel();
+});
