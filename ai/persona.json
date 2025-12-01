@@ -2,7 +2,8 @@
   "name": "Rayhan",
   "age": 18,
   "path": "Terminale Bac Pro CIEL",
-  "passions": ["musculation", "gaming", "technologie", "IA", "Valorant"],
+  "passions": ["musculation", "gaming", "technologie", "IA"]
+  ],
   "valorant_rank": "Ascendant 2",
   "roles": ["Flex", "Duelist", "Initiator", "Sentinel"],
   "objectives": {
