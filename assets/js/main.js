@@ -1,343 +1,184 @@
 /* ============================================
-   RAYHAN PORTFOLIO - MAIN SCRIPT
-   Apple Premium Version 2025
+   PORTFOLIO PROFESSIONNEL RayhanOS
+   Fonctionnalités Avancées 2025
 ============================================ */
 
 'use strict';
 
 // ============================================
-// CONFIGURATION
-// ============================================
-
-const CONFIG = {
-  scrollThreshold: 0.15,
-  headerScrollThreshold: 20,
-  animationDelay: 50,
-  debounceDelay: 150,
-  throttleDelay: 100
-};
-
-// ============================================
 // UTILITIES
 // ============================================
 
-const $ = (selector, context = document) => context.querySelector(selector);
-const $$ = (selector, context = document) => [...context.querySelectorAll(selector)];
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => [...document.querySelectorAll(sel)];
 
-const debounce = (func, wait) => {
+const debounce = (fn, delay) => {
   let timeout;
   return (...args) => {
     clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), wait);
+    timeout = setTimeout(() => fn(...args), delay);
   };
 };
 
-const throttle = (func, limit) => {
-  let inThrottle;
+const throttle = (fn, delay) => {
+  let last = 0;
   return (...args) => {
-    if (!inThrottle) {
-      func.apply(this, args);
-      inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
+    const now = Date.now();
+    if (now - last >= delay) {
+      last = now;
+      fn(...args);
     }
   };
 };
 
 // ============================================
-// THEME MANAGER (Apple Style)
+// THEME MANAGER
 // ============================================
 
 class ThemeManager {
   constructor() {
-    this.body = document.body;
-    this.toggleBtn = $('#theme-toggle');
-    this.toggleBtnMobile = $('#theme-toggle-mobile');
-    this.currentTheme = this.getStoredTheme() || this.getPreferredTheme();
+    this.theme = localStorage.getItem('theme') || 'dark';
+    this.toggle = $('#theme-toggle');
     this.init();
   }
 
-  getStoredTheme() {
-    return localStorage.getItem('theme');
-  }
-
-  getPreferredTheme() {
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-      return 'light';
-    }
-    return 'dark';
-  }
-
   init() {
-    this.apply(this.currentTheme);
+    this.apply();
+    this.toggle?.addEventListener('click', () => this.switch());
     
-    if (this.toggleBtn) {
-      this.toggleBtn.addEventListener('click', () => this.toggle());
-    }
-    
-    if (this.toggleBtnMobile) {
-      this.toggleBtnMobile.addEventListener('click', () => this.toggle());
-    }
-
-    // Listen for system theme changes
+    // Détection système
     if (window.matchMedia) {
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-        if (!this.getStoredTheme()) {
-          this.apply(e.matches ? 'dark' : 'light');
+        if (!localStorage.getItem('theme')) {
+          this.theme = e.matches ? 'dark' : 'light';
+          this.apply();
         }
       });
     }
   }
 
-  apply(theme) {
-    this.body.setAttribute('data-theme', theme);
-    this.currentTheme = theme;
+  apply() {
+    document.body.setAttribute('data-theme', this.theme);
     
-    // Update meta theme-color for mobile browsers
-    const metaTheme = $('meta[name="theme-color"]');
-    if (metaTheme) {
-      metaTheme.setAttribute('content', theme === 'dark' ? '#000000' : '#ffffff');
+    const meta = $('meta[name="theme-color"]');
+    if (meta) {
+      meta.content = this.theme === 'dark' ? '#000000' : '#ffffff';
     }
   }
 
-  toggle() {
-    const newTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
-    this.apply(newTheme);
-    localStorage.setItem('theme', newTheme);
-    
-    // Add smooth transition class
-    this.body.style.setProperty('transition', 'background 0.5s cubic-bezier(0.28, 0.11, 0.32, 1), color 0.5s cubic-bezier(0.28, 0.11, 0.32, 1)');
-    
-    setTimeout(() => {
-      this.body.style.removeProperty('transition');
-    }, 500);
+  switch() {
+    this.theme = this.theme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', this.theme);
+    this.apply();
   }
 }
 
 // ============================================
-// NAVIGATION (Apple Style)
+// NAVIGATION
 // ============================================
 
 class Navigation {
   constructor() {
     this.header = $('#header');
-    this.burger = $('#burger-btn');
-    this.mobileMenu = $('#mobile-menu');
-    this.mobileLinks = $$('.mobile-link');
-    this.navLinks = $$('.apple-nav-link');
+    this.burger = $('#burger');
+    this.menu = $('#mobile-menu');
+    this.links = $$('.nav-link, .mobile-link');
     this.isOpen = false;
-    
     this.init();
   }
 
   init() {
     // Burger toggle
-    if (this.burger && this.mobileMenu) {
-      this.burger.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.toggleMobile();
+    this.burger?.addEventListener('click', () => this.toggleMenu());
+    
+    // Close on link click
+    this.links.forEach(link => {
+      link.addEventListener('click', () => {
+        if (this.isOpen) this.closeMenu();
+        this.smoothScroll(link);
       });
-      
-      // Close on link click
-      this.mobileLinks.forEach(link => {
-        link.addEventListener('click', () => {
-          this.closeMobile();
-          this.smoothScroll(link);
-        });
-      });
-      
-      // Close on outside click
-      document.addEventListener('click', (e) => {
-        if (this.isOpen && !this.mobileMenu.contains(e.target) && !this.burger.contains(e.target)) {
-          this.closeMobile();
-        }
-      });
-      
-      // Close on ESC
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && this.isOpen) {
-          this.closeMobile();
-        }
-      });
-    }
-
-    // Desktop smooth scroll
-    this.navLinks.forEach(link => {
-      link.addEventListener('click', (e) => this.smoothScroll(link, e));
     });
-
-    // Header scroll effect (Apple style)
-    window.addEventListener('scroll', throttle(() => this.handleScroll(), CONFIG.throttleDelay), { passive: true });
     
-    // Initial check
-    this.handleScroll();
-  }
-
-  toggleMobile() {
-    this.isOpen = !this.isOpen;
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+      if (this.isOpen && !this.menu.contains(e.target) && !this.burger.contains(e.target)) {
+        this.closeMenu();
+      }
+    });
     
-    if (this.isOpen) {
-      this.openMobile();
-    } else {
-      this.closeMobile();
-    }
+    // Close on ESC
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.isOpen) this.closeMenu();
+    });
+    
+    // Scroll handling
+    window.addEventListener('scroll', throttle(() => this.handleScroll(), 100), { passive: true });
+    
+    // Active section
+    this.updateActiveLink();
+    window.addEventListener('scroll', throttle(() => this.updateActiveLink(), 100), { passive: true });
   }
 
-openMobile() {
-  this.burger.classList.add('active');
-  this.burger.setAttribute('aria-expanded', 'true');
-
-  this.mobileMenu.classList.add('open');
-  this.mobileMenu.removeAttribute('inert'); // ← ouverture propre
-
-  document.body.style.overflow = 'hidden';
-  this.isOpen = true;
-
-  // Temporarily hide RayhAI when mobile menu opens
-  const rayBubble = $('.rayhai-bubble');
-  const rayPanel = $('.rayhai-panel');
-  if (rayBubble) rayBubble.style.opacity = '0';
-  if (rayPanel && rayPanel.classList.contains('open')) {
-    window.RayhaiPanel?.close();
+  toggleMenu() {
+    this.isOpen ? this.closeMenu() : this.openMenu();
   }
-}
 
-closeMobile() {
-  this.burger.classList.remove('active');
-  this.burger.setAttribute('aria-expanded', 'false');
-
-  this.mobileMenu.classList.remove('open');
-  this.mobileMenu.setAttribute('inert', ''); // ← évite l’erreur ARIA
-
-  document.body.style.overflow = '';
-  this.isOpen = false;
-
-  // Restore RayhAI visibility
-  const rayBubble = $('.rayhai-bubble');
-  if (rayBubble) {
-    setTimeout(() => {
-      rayBubble.style.opacity = '';
-    }, 300);
+  openMenu() {
+    this.isOpen = true;
+    this.burger.classList.add('active');
+    this.menu.classList.add('open');
+    document.body.style.overflow = 'hidden';
   }
-}
 
+  closeMenu() {
+    this.isOpen = false;
+    this.burger.classList.remove('active');
+    this.menu.classList.remove('open');
+    document.body.style.overflow = '';
+  }
 
-  smoothScroll(link, event) {
+  smoothScroll(link) {
     const href = link.getAttribute('href');
-    
-    if (!href || !href.startsWith('#')) return;
-    
-    if (event) event.preventDefault();
+    if (!href?.startsWith('#')) return;
     
     const target = $(href);
-    if (target) {
-      const headerHeight = this.header.offsetHeight;
-      const targetPosition = target.offsetTop - headerHeight - 20;
-      
-      window.scrollTo({
-        top: targetPosition,
-        behavior: 'smooth'
-      });
-
-      // Update URL without triggering scroll
-      history.replaceState(null, null, href);
-    }
+    if (!target) return;
+    
+    const headerHeight = this.header.offsetHeight;
+    const targetPos = target.offsetTop - headerHeight - 20;
+    
+    window.scrollTo({
+      top: targetPos,
+      behavior: 'smooth'
+    });
   }
 
   handleScroll() {
-    const scrolled = window.scrollY > CONFIG.headerScrollThreshold;
-    
-    if (scrolled) {
+    if (window.scrollY > 20) {
       this.header.classList.add('scrolled');
     } else {
       this.header.classList.remove('scrolled');
     }
+  }
+
+  updateActiveLink() {
+    const sections = $$('section[id]');
+    const scrollPos = window.scrollY + this.header.offsetHeight + 100;
     
-    // Close mobile menu on significant scroll
-    if (this.isOpen && window.scrollY > 100) {
-      this.closeMobile();
-    }
-  }
-}
-
-// ============================================
-// SCROLL ANIMATIONS (Intersection Observer)
-// ============================================
-
-class ScrollAnimations {
-  constructor() {
-    this.elements = $$('.reveal');
-    this.observer = null;
-    this.init();
-  }
-
-  init() {
-    const options = {
-      root: null,
-      threshold: CONFIG.scrollThreshold,
-      rootMargin: '0px 0px -50px 0px'
-    };
-
-    this.observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry, index) => {
-        if (entry.isIntersecting) {
-          // Stagger animation for multiple elements
-          setTimeout(() => {
-            entry.target.classList.add('visible');
-          }, index * 50);
-          
-          // Unobserve after animation
-          this.observer.unobserve(entry.target);
-        }
-      });
-    }, options);
-
-    this.elements.forEach(element => {
-      this.observer.observe(element);
-    });
-
-    // Initial animation for hero
-    setTimeout(() => {
-      const hero = $('.hero');
-      if (hero) hero.classList.add('visible');
-    }, CONFIG.animationDelay);
-  }
-}
-
-// ============================================
-// ACTIVE NAV LINK (Apple Style)
-// ============================================
-
-class ActiveNavLink {
-  constructor() {
-    this.sections = $$('section[id]');
-    this.navLinks = $$('.apple-nav-link, .mobile-link');
+    let currentSection = '';
     
-    if (this.sections.length && this.navLinks.length) {
-      this.init();
-    }
-  }
-
-  init() {
-    window.addEventListener('scroll', throttle(() => this.update(), CONFIG.throttleDelay), { passive: true });
-    this.update();
-  }
-
-  update() {
-    let current = '';
-    const headerHeight = $('#header')?.offsetHeight || 0;
-    
-    this.sections.forEach(section => {
-      const sectionTop = section.offsetTop - headerHeight - 100;
-      const sectionBottom = sectionTop + section.offsetHeight;
+    sections.forEach(section => {
+      const top = section.offsetTop;
+      const height = section.offsetHeight;
       
-      if (window.scrollY >= sectionTop && window.scrollY < sectionBottom) {
-        current = section.getAttribute('id');
+      if (scrollPos >= top && scrollPos < top + height) {
+        currentSection = section.id;
       }
     });
-
-    this.navLinks.forEach(link => {
+    
+    this.links.forEach(link => {
       link.classList.remove('active');
-      if (link.getAttribute('href') === `#${current}`) {
+      if (link.getAttribute('href') === `#${currentSection}`) {
         link.classList.add('active');
       }
     });
@@ -345,35 +186,124 @@ class ActiveNavLink {
 }
 
 // ============================================
-// CARD HOVER EFFECTS (3D Transform)
+// CUSTOM CURSOR
 // ============================================
 
-class CardHoverEffects {
+class CustomCursor {
   constructor() {
-    this.cards = $$('.skill-card, .project-card, .quote-card, .stat-card');
+    if (window.innerWidth < 1024) return;
+    
+    this.cursor = $('.custom-cursor');
+    this.dot = $('.cursor-dot');
+    
+    if (!this.cursor || !this.dot) return;
+    
+    this.mouseX = 0;
+    this.mouseY = 0;
+    this.cursorX = 0;
+    this.cursorY = 0;
+    
+    this.init();
+  }
+
+  init() {
+    document.addEventListener('mousemove', (e) => {
+      this.mouseX = e.clientX;
+      this.mouseY = e.clientY;
+      
+      // Point central suit immédiatement
+      this.dot.style.left = this.mouseX + 'px';
+      this.dot.style.top = this.mouseY + 'px';
+    }, { passive: true });
+
+    this.animate();
+
+    // Hover effects
+    const hoverables = 'a, button, .card, .stat-item, .nav-link, .mobile-link';
+    $$(hoverables).forEach(el => {
+      el.addEventListener('mouseenter', () => this.cursor.classList.add('hover'));
+      el.addEventListener('mouseleave', () => this.cursor.classList.remove('hover'));
+    });
+  }
+
+  animate() {
+    // Curseur extérieur suit avec délai
+    this.cursorX += (this.mouseX - this.cursorX) * 0.15;
+    this.cursorY += (this.mouseY - this.cursorY) * 0.15;
+    this.cursor.style.left = this.cursorX + 'px';
+    this.cursor.style.top = this.cursorY + 'px';
+    requestAnimationFrame(() => this.animate());
+  }
+}
+
+// ============================================
+// SCROLL PROGRESS
+// ============================================
+
+class ScrollProgress {
+  constructor() {
+    this.bar = $('.scroll-progress');
+    if (!this.bar) return;
+    this.init();
+  }
+
+  init() {
+    window.addEventListener('scroll', () => {
+      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const scrolled = (window.scrollY / scrollHeight) * 100;
+      this.bar.style.width = Math.min(scrolled, 100) + '%';
+    }, { passive: true });
+  }
+}
+
+// ============================================
+// SKILL BARS
+// ============================================
+
+class SkillBars {
+  constructor() {
+    this.init();
+  }
+
+  init() {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const fills = entry.target.querySelectorAll('.skill-bar-fill');
+          fills.forEach(fill => {
+            setTimeout(() => {
+              const width = fill.getAttribute('data-width');
+              fill.style.width = width + '%';
+            }, 300);
+          });
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.3 });
+
+    $$('.skill-bars').forEach(el => observer.observe(el));
+  }
+}
+
+// ============================================
+// CARD ANIMATIONS
+// ============================================
+
+class CardAnimations {
+  constructor() {
+    if (window.innerWidth < 1024) return;
+    this.cards = $$('.card, .stat-item');
     this.init();
   }
 
   init() {
     this.cards.forEach(card => {
-      card.addEventListener('mouseenter', () => this.onEnter(card));
-      card.addEventListener('mouseleave', () => this.onLeave(card));
-      card.addEventListener('mousemove', (e) => this.onMove(card, e));
+      card.addEventListener('mousemove', (e) => this.handleMove(card, e));
+      card.addEventListener('mouseleave', () => this.handleLeave(card));
     });
   }
 
-  onEnter(card) {
-    card.style.transition = 'transform 0.1s cubic-bezier(0.28, 0.11, 0.32, 1)';
-  }
-
-  onLeave(card) {
-    card.style.transform = '';
-    card.style.transition = 'transform 0.35s cubic-bezier(0.28, 0.11, 0.32, 1)';
-  }
-
-  onMove(card, e) {
-    if (window.innerWidth < 1024) return;
-    
+  handleMove(card, e) {
     const rect = card.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -386,147 +316,200 @@ class CardHoverEffects {
     
     card.style.transform = `
       perspective(1000px)
-      translateY(-4px)
-      rotateX(${rotateX}deg) 
+      rotateX(${rotateX}deg)
       rotateY(${rotateY}deg)
+      translateY(-4px)
       scale3d(1.02, 1.02, 1.02)
     `;
+  }
+
+  handleLeave(card) {
+    card.style.transform = '';
   }
 }
 
 // ============================================
-// SMOOTH SCROLL FOR ALL ANCHORS
+// SCROLL REVEAL
 // ============================================
 
-class SmoothScroll {
+class ScrollReveal {
   constructor() {
-    this.links = $$('a[href^="#"]');
+    this.elements = $$('.section, .card');
     this.init();
   }
 
   init() {
-    this.links.forEach(link => {
-      link.addEventListener('click', (e) => {
-        const href = link.getAttribute('href');
-        
-        if (!href || href === '#') return;
-        
-        const target = $(href);
-        
-        if (target) {
-          e.preventDefault();
-          
-          const headerHeight = $('#header')?.offsetHeight || 0;
-          const targetPosition = target.offsetTop - headerHeight - 20;
-          
-          window.scrollTo({
-            top: targetPosition,
-            behavior: 'smooth'
-          });
-
-          // Update URL
-          history.replaceState(null, null, href);
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+          observer.unobserve(entry.target);
         }
       });
+    }, { threshold: 0.1 });
+
+    this.elements.forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(20px)';
+      el.style.transition = 'opacity 0.8s cubic-bezier(0.28, 0.11, 0.32, 1), transform 0.8s cubic-bezier(0.28, 0.11, 0.32, 1)';
+      observer.observe(el);
     });
   }
 }
 
 // ============================================
-// LOGO CLICK SCROLL TO TOP
+// FAB MENU
 // ============================================
 
-function initLogoScroll() {
-  const logo = $('.apple-logo');
-  if (logo) {
-    logo.addEventListener('click', (e) => {
-      e.preventDefault();
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-      history.replaceState(null, null, ' ');
+class FabMenu {
+  constructor() {
+    this.fab = $('#fab');
+    this.menu = $('#fab-menu');
+    this.isOpen = false;
+    this.init();
+  }
+
+  init() {
+    if (!this.fab || !this.menu) return;
+
+    this.fab.addEventListener('click', () => this.toggle());
+    
+    document.addEventListener('click', (e) => {
+      if (this.isOpen && !this.fab.contains(e.target) && !this.menu.contains(e.target)) {
+        this.close();
+      }
+    });
+  }
+
+  toggle() {
+    this.isOpen ? this.close() : this.open();
+  }
+
+  open() {
+    this.isOpen = true;
+    this.menu.classList.add('open');
+    this.fab.textContent = '✕';
+  }
+
+  close() {
+    this.isOpen = false;
+    this.menu.classList.remove('open');
+    this.fab.textContent = '✨';
+  }
+}
+
+// ============================================
+// KEYBOARD SHORTCUTS
+// ============================================
+
+class KeyboardShortcuts {
+  constructor() {
+    this.init();
+  }
+
+  init() {
+    document.addEventListener('keydown', (e) => {
+      // Ctrl/Cmd + K : Ouvrir le menu FAB
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const fab = $('#fab');
+        if (fab) fab.click();
+      }
+      
+      // Ctrl/Cmd + / : Afficher les raccourcis
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        this.showShortcuts();
+      }
+      
+      // ESC : Fermer tout
+      if (e.key === 'Escape') {
+        const menu = $('#mobile-menu');
+        const fabMenu = $('#fab-menu');
+        
+        if (menu?.classList.contains('open')) {
+          $('#burger')?.click();
+        }
+        
+        if (fabMenu?.classList.contains('open')) {
+          $('#fab')?.click();
+        }
+      }
+    });
+  }
+
+  showShortcuts() {
+    const shortcuts = [
+      'Ctrl/Cmd + K : Menu rapide',
+      'Ctrl/Cmd + / : Afficher les raccourcis',
+      'ESC : Fermer les menus'
+    ];
+    
+    console.log('⌨️ Raccourcis clavier disponibles :');
+    shortcuts.forEach(s => console.log('  ' + s));
+  }
+}
+
+// ============================================
+// PERFORMANCE MONITOR
+// ============================================
+
+class PerformanceMonitor {
+  constructor() {
+    this.init();
+  }
+
+  init() {
+    if (!window.performance) return;
+    
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const perf = window.performance.timing;
+        const loadTime = perf.loadEventEnd - perf.navigationStart;
+        
+        if (loadTime > 0) {
+          console.log(`⚡ Page chargée en ${(loadTime / 1000).toFixed(2)}s`);
+        }
+      }, 0);
     });
   }
 }
 
 // ============================================
-// YEAR AUTO UPDATE
+// GLOBAL FUNCTIONS
+// ============================================
+
+window.scrollToTop = function() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const fabMenu = $('#fab-menu');
+  const fab = $('#fab');
+  if (fabMenu && fab) {
+    fabMenu.classList.remove('open');
+    fab.textContent = '✨';
+  }
+};
+
+window.showEasterEgg = function() {
+  const modal = $('#easter-modal');
+  if (modal) modal.classList.add('show');
+};
+
+window.closeEasterEgg = function() {
+  const modal = $('#easter-modal');
+  if (modal) modal.classList.remove('show');
+};
+
+// ============================================
+// UTILITIES
 // ============================================
 
 function setCurrentYear() {
-  const yearElement = $('#year');
-  if (yearElement) {
-    yearElement.textContent = new Date().getFullYear();
-  }
+  const yearEl = $('#year');
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
 }
-
-// ============================================
-// ENTRANCE ANIMATION
-// ============================================
-
-function initEntranceAnimation() {
-  document.body.style.opacity = '0';
-  
-  requestAnimationFrame(() => {
-    document.body.style.transition = 'opacity 0.6s cubic-bezier(0.28, 0.11, 0.32, 1)';
-    document.body.style.opacity = '1';
-  });
-}
-
-// ============================================
-// PERFORMANCE MONITORING
-// ============================================
-
-function monitorPerformance() {
-  if (!window.performance || !window.performance.timing) return;
-  
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      const perfData = window.performance.timing;
-      const pageLoadTime = perfData.loadEventEnd - perfData.navigationStart;
-      console.log(`🚀 Portfolio Apple - Page loaded in: ${pageLoadTime}ms`);
-      
-      // Log paint metrics if available
-      if (window.performance.getEntriesByType) {
-        const paintMetrics = window.performance.getEntriesByType('paint');
-        paintMetrics.forEach(metric => {
-          console.log(`🎨 ${metric.name}: ${Math.round(metric.startTime)}ms`);
-        });
-      }
-    }, 0);
-  });
-}
-
-// ============================================
-// ACCESSIBILITY IMPROVEMENTS
-// ============================================
 
 function improveAccessibility() {
-  // Skip to main content link
-  const skipLink = document.createElement('a');
-  skipLink.href = '#profil';
-  skipLink.className = 'skip-link';
-  skipLink.textContent = 'Aller au contenu principal';
-  skipLink.style.cssText = `
-    position: absolute;
-    top: -40px;
-    left: 0;
-    background: var(--accent);
-    color: white;
-    padding: 8px;
-    text-decoration: none;
-    z-index: 100000;
-  `;
-  skipLink.addEventListener('focus', () => {
-    skipLink.style.top = '0';
-  });
-  skipLink.addEventListener('blur', () => {
-    skipLink.style.top = '-40px';
-  });
-  document.body.insertBefore(skipLink, document.body.firstChild);
-
-  // Add focus visible styles for keyboard navigation
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Tab') {
       document.body.classList.add('keyboard-nav');
@@ -543,35 +526,33 @@ function improveAccessibility() {
 // ============================================
 
 function init() {
-  console.log('🍎 Portfolio v2025');
+  console.log('🎨 Portfolio RayhanOS - Version Professionnelle');
+  console.log('🌊 Fond : Vagues Dynamiques');
   
-  // Initialize all modules
+  // Core
   new ThemeManager();
   new Navigation();
-  new ScrollAnimations();
-  new ActiveNavLink();
-  new SmoothScroll();
-  new CardHoverEffects();
+  new ScrollProgress();
   
+  // Visuals
+  new CustomCursor();
+  new ScrollReveal();
+  
+  // Interactions
+  new SkillBars();
+  new CardAnimations();
+  new FabMenu();
+  
+  // Features
+  new KeyboardShortcuts();
+  new PerformanceMonitor();
+  
+  // Utils
   setCurrentYear();
-  initEntranceAnimation();
-  initLogoScroll();
   improveAccessibility();
-  monitorPerformance();
   
+  console.log('💡 Raccourcis : Ctrl/Cmd + K pour menu, Ctrl/Cmd + / pour aide');
 }
-
-// ============================================
-// ERROR HANDLING
-// ============================================
-
-window.addEventListener('error', (e) => {
-  console.error('❌ Global error:', e.error);
-});
-
-window.addEventListener('unhandledrejection', (e) => {
-  console.error('❌ Unhandled promise rejection:', e.reason);
-});
 
 // ============================================
 // LAUNCH
@@ -584,17 +565,13 @@ if (document.readyState === 'loading') {
 }
 
 // ============================================
-// EXPOSE FOR DEBUGGING
+// ERROR HANDLING
 // ============================================
 
-window.PortfolioDebug = {
-  CONFIG,
-  version: '2025',
-  theme: () => document.body.getAttribute('data-theme')
-};
+window.addEventListener('error', (e) => {
+  console.error('⚠️ Erreur:', e.error);
+});
 
-
-
-
-
-
+window.addEventListener('unhandledrejection', (e) => {
+  console.error('⚠️ Promise rejetée:', e.reason);
+});
